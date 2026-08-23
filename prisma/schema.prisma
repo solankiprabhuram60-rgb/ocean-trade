@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+
+ model Product {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  price       Float    @default(0)
+  category    String   @default("Ocean Trade")
+  author      String   @default("Ocean Trade")
+  imageUrl    String
+  fileUrl     String
+  fileName    String
+  tags        String   @default("")
+  imageHash   String   @default("")
+  salesCount  Int      @default(0)
+  isFree      Boolean  @default(false)
+  isPremium   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files       ProductFile[]
+}
+
+model ProductFile {
+  id          String   @id @default(cuid())
+  productId   String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url         String
+  fileName    String
+  fileType    String
+  createdAt   DateTime @default(now())
+}
+
+model HomeTag {
+  id        String   @id @default(cuid())
+  label     String
+  query     String
+  type      String
+  sortOrder Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HomeSection {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  title     String
+  subtitle  String
+  limit     Int      @default(8)
+  sortBy    String   @default("newest")
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
