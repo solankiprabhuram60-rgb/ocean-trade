@@ -98,9 +98,7 @@ export default function CheckoutPage() {
               <label className="mb-2 block text-sm text-white/60">
                 City
               </label>
-<Link href="/checkout" className="btn-brand mt-6 flex w-full justify-center">
-  Proceed to Checkout
-</Link>
+
                 placeholder="City"
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-brand"
               />
