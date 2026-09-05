@@ -1,0 +1,72 @@
+[1mdiff --git a/prisma.config.ts b/prisma.config.ts[m
+[1mindex 1929957..e3b6e2e 100644[m
+[1m--- a/prisma.config.ts[m
+[1m+++ b/prisma.config.ts[m
+[36m@@ -1,14 +1,13 @@[m
+ import "dotenv/config";[m
+[31m-import { defineConfig } from "prisma/config";[m
+[32m+[m
+[32m+[m[32mimport { defineConfig, env } from "prisma/config";[m
+ [m
+ export default defineConfig({[m
+   schema: "prisma/schema.prisma",[m
+[31m-[m
+   migrations: {[m
+     path: "prisma/migrations",[m
+   },[m
+[31m-[m
+   datasource: {[m
+[31m-    url: "file:./dev.db",[m
+[32m+[m[32m    url: env("DATABASE_URL"),[m
+   },[m
+ });[m
+\ No newline at end of file[m
+[1mdiff --git a/prisma/schema.prisma b/prisma/schema.prisma[m
+[1mindex d79a903..83feb8d 100644[m
+[1m--- a/prisma/schema.prisma[m
+[1m+++ b/prisma/schema.prisma[m
+[36m@@ -4,7 +4,7 @@[m [mgenerator client {[m
+ }[m
+ [m
+ datasource db {[m
+[31m-  provider = "sqlite"[m
+[32m+[m[32m  provider = "postgresql"[m
+ }[m
+ [m
+ [m
+[36m@@ -65,4 +65,4 @@[m [mmodel HomeSection {[m
+   id        String   @id @default(cuid())[m
+   createdAt DateTime @default(now())[m
+   updatedAt DateTime @updatedAt[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/lib/db.ts b/src/lib/db.ts[m
+[1mindex 757d1b8..0c10c02 100644[m
+[1m--- a/src/lib/db.ts[m
+[1m+++ b/src/lib/db.ts[m
+[36m@@ -1,16 +1,20 @@[m
+ import "dotenv/config";[m
+[32m+[m[32mimport { PrismaNeon } from "@prisma/adapter-neon";[m
+ import { PrismaClient } from "@/generated/prisma/client";[m
+[31m-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";[m
+ [m
+ const globalForPrisma = globalThis as unknown as {[m
+   prisma: PrismaClient | undefined;[m
+ };[m
+ [m
+ function createPrismaClient() {[m
+[31m-  const databaseUrl = process.env.DATABASE_URL || "file:./dev.db";[m
+[32m+[m[32m  const connectionString = process.env.DATABASE_URL;[m
+ [m
+[31m-  const adapter = new PrismaBetterSqlite3({[m
+[31m-    url: databaseUrl,[m
+[32m+[m[32m  if (!connectionString) {[m
+[32m+[m[32m    throw new Error("DATABASE_URL is not set");[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const adapter = new PrismaNeon({[m
+[32m+[m[32m    connectionString,[m
+   });[m
+ [m
+   return new PrismaClient({[m

@@ -1,28 +1,60 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
+function getSafeExtension(fileName: string) {
+  const lastDot = fileName.lastIndexOf(".");
 
-export async function ensureUploadDir() {
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  if (lastDot === -1) {
+    return "";
+  }
+
+  return fileName.slice(lastDot).toLowerCase();
 }
 
-export async function saveUploadedFile(file: File, prefix: string): Promise<{ url: string; fileName: string }> {
-  await ensureUploadDir();
+function getSafeBaseName(fileName: string) {
+  const lastDot = fileName.lastIndexOf(".");
 
-  const ext = path.extname(file.name) || "";
-  const safeName = `${prefix}-${Date.now()}${ext}`;
-  const filePath = path.join(UPLOAD_DIR, safeName);
+  const baseName =
+    lastDot === -1 ? fileName : fileName.slice(0, lastDot);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+  return baseName
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
+}
+
+export async function saveUploadedFile(
+  file: File,
+  prefix: string
+): Promise<{
+  url: string;
+  fileName: string;
+}> {
+  if (!file || file.size === 0) {
+    throw new Error("Empty file");
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is not configured");
+  }
+
+  const extension = getSafeExtension(file.name);
+  const originalBaseName = getSafeBaseName(file.name);
+
+  const safeName =
+    `${prefix}-${originalBaseName}-${Date.now()}${extension}`;
+
+  const blob = await put(
+    `products/${safeName}`,
+    file,
+    {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type || undefined,
+    }
+  );
 
   return {
-    url: `/uploads/products/${safeName}`,
+    url: blob.url,
     fileName: file.name,
   };
-}
-
-export function getUploadDir() {
-  return UPLOAD_DIR;
 }
