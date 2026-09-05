@@ -1,16 +1,20 @@
 import "dotenv/config";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
-  const databaseUrl = process.env.DATABASE_URL || "file:./dev.db";
+  const connectionString = process.env.DATABASE_URL;
 
-  const adapter = new PrismaBetterSqlite3({
-    url: databaseUrl,
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set");
+  }
+
+  const adapter = new PrismaNeon({
+    connectionString,
   });
 
   return new PrismaClient({
