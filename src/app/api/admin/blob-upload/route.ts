@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const jsonResponse = await handleUpload({
       body,
       request,
+
       onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: [
@@ -15,16 +16,20 @@ export async function POST(request: Request) {
             "image/png",
             "image/webp",
             "image/jpg",
+            "model/stl",
+            "model/obj",
             "model/gltf-binary",
             "model/gltf+json",
             "application/zip",
             "application/octet-stream",
           ],
-          addRandomSuffix: true,
+
+          maximumSizeInBytes: 100 * 1024 * 1024,
         };
       },
-      onUploadCompleted: async () => {
-        console.log("Blob upload completed");
+
+      onUploadCompleted: async ({ blob }) => {
+        console.log("Blob upload completed:", blob.url);
       },
     });
 
@@ -33,8 +38,15 @@ export async function POST(request: Request) {
     console.error("Blob upload error:", error);
 
     return NextResponse.json(
-      { error: "Blob upload failed" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Blob upload failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
