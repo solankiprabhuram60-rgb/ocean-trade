@@ -131,13 +131,61 @@ export default function AdminPage() {
       return;
     }
 
+    // Keep the browser-side checks consistent with the Blob route.
+    const maxImageSize = 10 * 1024 * 1024;
+    const maxModelSize = 100 * 1024 * 1024;
+
+    if (imageFile.size === 0 || modelFile.size === 0) {
+      setError("Selected file is empty. Please choose another file.");
+      return;
+    }
+
+    if (imageFile.size > maxImageSize) {
+      setError("Product image must be 10 MB or smaller.");
+      return;
+    }
+
+    if (modelFile.size > maxModelSize) {
+      setError("3D model must be 100 MB or smaller.");
+      return;
+    }
+
+    const allowedModelExtensions = [
+      ".fbx",
+      ".obj",
+      ".stl",
+      ".blend",
+      ".zip",
+      ".glb",
+      ".gltf",
+      ".jcd",
+    ];
+
+    const modelName = modelFile.name.toLowerCase();
+    const modelExtension = allowedModelExtensions.find((ext) =>
+      modelName.endsWith(ext)
+    );
+
+    if (!modelExtension) {
+      setError(
+        "Unsupported 3D model format. Use .fbx, .obj, .stl, .blend, .zip, .glb, .gltf, or .jcd."
+      );
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
+      const safeImageName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeModelName = modelFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      setSuccess("Uploading product image...");
+
       const imageBlob = await upload(
-        `img/${Date.now()}-${imageFile.name}`,
+        `img/${uploadId}-${safeImageName}`,
         imageFile,
         {
           access: "public",
@@ -145,14 +193,18 @@ export default function AdminPage() {
         }
       );
 
+      setSuccess("Product image uploaded. Uploading 3D model...");
+
       const modelBlob = await upload(
-        `model/${Date.now()}-${modelFile.name}`,
+        `model/${uploadId}-${safeModelName}`,
         modelFile,
         {
           access: "public",
           handleUploadUrl: "/api/admin/blob-upload",
         }
       );
+
+      setSuccess("Files uploaded. Saving product...");
 
       const res = await fetch("/api/admin/products", {
         method: "POST",
@@ -178,12 +230,12 @@ export default function AdminPage() {
         data = JSON.parse(text);
       } catch {
         data = {
-          error: text || "Upload failed",
+          error: text || "Failed to save product",
         };
       }
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create product");
+        throw new Error(data.error || `Failed to create product (${res.status})`);
       }
 
       setSuccess(
@@ -217,11 +269,14 @@ export default function AdminPage() {
 
       await loadProducts();
     } catch (err) {
+      console.error("Admin upload failed:", err);
+
       setError(
         err instanceof Error
           ? err.message
-          : "Upload failed. Please try again."
+          : "Upload failed. Please check your Vercel Blob configuration and try again."
       );
+      setSuccess("");
     } finally {
       setLoading(false);
     }
