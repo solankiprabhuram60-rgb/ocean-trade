@@ -1,44 +1,72 @@
-import { handleUpload } from "@vercel/blob/client";
+import {
+  handleUpload,
+  type HandleUploadBody,
+} from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+const ALLOWED_CONTENT_TYPES = [
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/jpg",
+
+  // 3D
+  "model/stl",
+  "model/obj",
+  "model/gltf-binary",
+  "model/gltf+json",
+
+  // 3D files that browsers may report as octet-stream
+  "application/octet-stream",
+
+  // ZIP / Blender
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-blender",
+];
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as HandleUploadBody;
 
     const jsonResponse = await handleUpload({
       body,
       request,
 
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (
+        pathname,
+        clientPayload,
+        multipart
+      ) => {
+        console.log("Generating Blob upload token:", {
+          pathname,
+          clientPayload,
+          multipart,
+        });
+
         return {
-          allowedContentTypes: [
-            // Images
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/jpg",
+          allowedContentTypes: ALLOWED_CONTENT_TYPES,
 
-            // 3D/model files
-            "model/stl",
-            "model/obj",
-            "model/gltf-binary",
-            "model/gltf+json",
+          maximumSizeInBytes: MAX_FILE_SIZE,
 
-            // Some 3D formats are reported by browsers as octet-stream.
-            "application/octet-stream",
+          // Important for product uploads
+          addRandomSuffix: true,
 
-            // Archives / Blender
-            "application/zip",
-            "application/x-zip-compressed",
-            "application/x-blender",
-          ],
-
-          maximumSizeInBytes: 100 * 1024 * 1024,
+          // Vercel automatically determines callback URL
+          // in Preview and Production.
         };
       },
 
-      onUploadCompleted: async ({ blob }) => {
-        console.log("Blob upload completed:", blob.url);
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log("Blob upload completed:", {
+          url: blob.url,
+          pathname: blob.pathname,
+          contentType: blob.contentType,
+          tokenPayload,
+        });
       },
     });
 
@@ -54,7 +82,7 @@ export async function POST(request: Request) {
             : "Blob upload failed",
       },
       {
-        status: 500,
+        status: 400,
       }
     );
   }
