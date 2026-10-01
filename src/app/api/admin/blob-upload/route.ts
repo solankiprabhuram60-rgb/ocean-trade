@@ -12,16 +12,25 @@ export async function POST(request: Request) {
       onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: [
+            // Images
             "image/jpeg",
             "image/png",
             "image/webp",
             "image/jpg",
+
+            // 3D/model files
             "model/stl",
             "model/obj",
             "model/gltf-binary",
             "model/gltf+json",
-            "application/zip",
+
+            // Some 3D formats are reported by browsers as octet-stream.
             "application/octet-stream",
+
+            // Archives / Blender
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/x-blender",
           ],
 
           maximumSizeInBytes: 100 * 1024 * 1024,
